@@ -13,6 +13,8 @@ function love.load()
 		_table[i] = {}
 		_pic[i] = {}
 	end
+	-- обрахуємо кількість мін
+	mines_qty = math.floor(0.15*sizex*sizey)
 	-- заповнюємо комірки
 	init()
 	-- завантажуємо шрифт
@@ -22,6 +24,21 @@ function love.load()
 	mineImg = love.graphics.newImage('img/mine-1.png')
 	flagImg = love.graphics.newImage('img/flag-1.png')
 	boomImg = love.graphics.newImage('img/boom.png')
+end
+
+
+-- Перевірка чи гра закінчена
+-- в даному випадку "gameOver" означає що гравець відкрив усі комірки
+function love.update()
+	gameOver = true
+	for i=1,sizex do
+		for j=1,sizey do
+			if _pic[i][j] == HIDDEN or _pic[i][j] == FLAG then 
+				gameOver = false
+				break
+			end
+		end
+	end
 end
 
 
@@ -82,7 +99,8 @@ function love.mousepressed(x, y, button, istouch)
 						and y > (j-1)*grid and  y < j*grid then
 						_pic[i][j] = _table[i][j]
 						-- якщо в комірці "міна" - то гра закінчилась 
-						if _pic[i][j] == BOMB then
+						if _table[i][j] == BOMB or _table[i][j] == DEFUSED then
+							_table[i][j] = BOMB
 							for i=1,sizex do
 								for j=1,sizey do
 									_pic[i][j] = _table[i][j]
@@ -142,14 +160,29 @@ end
 function init()
 	-- заповнюємо мінами
 	math.randomseed(love.timer.getTime())
+	-- for i=1,sizex do
+	-- 	for j=1,sizey do
+	-- 		if math.random() > 0.8 then 
+	-- 			_table[i][j] = BOMB
+	-- 		else 
+	-- 			_table[i][j] = EMPTY
+	-- 		end
+	-- 		_pic[i][j] = HIDDEN
+	-- 	end
+	-- end
 	for i=1,sizex do
 		for j=1,sizey do
-			if math.random() > 0.8 then 
-				_table[i][j] = BOMB
-			else 
-				_table[i][j] = EMPTY
-			end
+			_table[i][j] = EMPTY
 			_pic[i][j] = HIDDEN
+		end
+	end
+	count = 0
+	while count < mines_qty do
+		x = math.random(1, sizex)
+		y = math.random(1, sizey)
+		if _table[x][y] ~= BOMB then
+			_table[x][y] = BOMB
+			count = count + 1
 		end
 	end
 	-- заповнюємо комірки числами
