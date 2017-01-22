@@ -31,22 +31,33 @@ function love.load()
 	scullImg[1] = love.graphics.newImage('img/scull/scull-1.png')
 	scullImg[2] = love.graphics.newImage('img/scull/scull-2.png')
 	winImg = love.graphics.newImage('img/win.png')
+	-- Завантажуємо звуки
+	sonarSound = love.audio.newSource('sounds/sonar.wav')
+	sonarOffSound = love.audio.newSource('sounds/sonar-off.wav')
+	explosionSound = love.audio.newSource('sounds/explosion.wav')
+	winSound = love.audio.newSource('sounds/win.wav')
+	openSound = love.audio.newSource('sounds/open.wav')
 end
 
 
 -- Перевірка чи гра закінчена
 -- в даному випадку "gameOver" означає що гравець відкрив усі комірки
 function love.update(dt)
-	win = true
-	for i=1,sizex do
-		for j=1,sizey do
-			if _pic[i][j] == HIDDEN then 
-				win = false
-				break
+	if not win then
+		win = true
+		for i=1,sizex do
+			for j=1,sizey do
+				if _pic[i][j] == HIDDEN then 
+					win = false
+					break
+				end
 			end
 		end
+		win = win and not gameOver
+		if win then
+			love.audio.play(winSound)
+		end
 	end
-	win = win and not gameOver
 	if win then
 		for i=1,sizex do
 			for j=1,sizey do
@@ -162,6 +173,8 @@ function love.mousepressed(x, y, button, istouch)
 				for j=1,sizey do
 					if x > (i-1)*grid and x < i*grid
 						and y > (j-1)*grid and  y < j*grid then
+						love.audio.stop(openSound)
+						love.audio.play(openSound)
 						_pic[i][j] = _table[i][j]
 						-- якщо в комірці "міна" - то гра закінчилась 
 						if _table[i][j] == BOMB or _table[i][j] == DEFUSED then
@@ -172,6 +185,7 @@ function love.mousepressed(x, y, button, istouch)
 								end
 							end
 							gameOver = true
+							love.audio.play(explosionSound)
 						end
 						-- якщо в комірці пусто - відкриваємо сусідні комірки
 						if _pic[i][j] == EMPTY then
@@ -194,10 +208,14 @@ function love.mousepressed(x, y, button, istouch)
 						_pic[i][j] = FLAG
 						flags_qty = flags_qty + 1
 						if _table[i][j] == BOMB then _table[i][j] = DEFUSED end
+						love.audio.stop(sonarSound)
+						love.audio.play(sonarSound)
 					elseif _pic[i][j] == FLAG then
 						_pic[i][j] = HIDDEN
 						flags_qty = flags_qty - 1
 						if _table[i][j] == DEFUSED then _table[i][j] = BOMB end
+						love.audio.stop(sonarOffSound)
+						love.audio.play(sonarOffSound)
 					end
 				end
 			end
@@ -208,9 +226,12 @@ end
 
 -- Рекурсивне відкриття порожних та сусідних комірок
 function fill(i,j)
+	if _pic[i][j] == FLAG then
+		flags_qty = flags_qty - 1
+	end
 	isHidden = _pic[i][j]
 	_pic[i][j] = _table[i][j]
-	if  _table[i][j] == EMPTY and isHidden == HIDDEN then
+	if  _table[i][j] == EMPTY and (isHidden == HIDDEN or isHidden == FLAG) then
 		if i > 1 and j > 1 then fill(i-1,j-1) end
 		if j > 1 then fill(i,j-1) end
 		if i < sizex and j > 1 then fill(i+1,j-1) end

@@ -3,8 +3,8 @@
 
 -- global variables
 grid = 30
-sizex = 10
-sizey = 10
+sizex = 16
+sizey = 16
 
 -- cells
 EMPTY = 0
