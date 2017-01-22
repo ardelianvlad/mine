@@ -18,24 +18,66 @@ function love.load()
 	-- заповнюємо комірки
 	init()
 	-- завантажуємо шрифт
-	font = love.graphics.newFont('fonts/ka1.ttf', 20)
+	font = love.graphics.newFont('fonts/ka1.ttf', 2/3*grid)
 	love.graphics.setFont(font)
 	-- завантажуємо текстури
 	mineImg = love.graphics.newImage('img/mine-1.png')
 	flagImg = love.graphics.newImage('img/flag-1.png')
-	boomImg = love.graphics.newImage('img/boom.png')
+	boomImg = {}
+	for i=1,6 do
+		boomImg[i] = love.graphics.newImage('img/boom/boom-'.. tostring(i) ..'.png')
+	end
+	scullImg = {}
+	scullImg[1] = love.graphics.newImage('img/scull/scull-1.png')
+	scullImg[2] = love.graphics.newImage('img/scull/scull-2.png')
+	winImg = love.graphics.newImage('img/win.png')
 end
 
 
 -- Перевірка чи гра закінчена
 -- в даному випадку "gameOver" означає що гравець відкрив усі комірки
-function love.update()
-	gameOver = true
+function love.update(dt)
+	win = true
 	for i=1,sizex do
 		for j=1,sizey do
-			if _pic[i][j] == HIDDEN or _pic[i][j] == FLAG then 
-				gameOver = false
+			if _pic[i][j] == HIDDEN then 
+				win = false
 				break
+			end
+		end
+	end
+	win = win and not gameOver
+	if win then
+		for i=1,sizex do
+			for j=1,sizey do
+				_pic[i][j] = _table[i][j]
+			end
+		end
+		winTime = winTime + dt
+		if winTime > 0.2 then
+			if winFrame == 1 then
+				winFrame = 2
+			else
+				winFrame = 1
+			end
+			winTime = 0
+		end
+	end
+	if gameOver then
+		scullTime = scullTime + dt
+		if scullTime > 0.3 then
+			if scullFrame == 1 then
+				scullFrame = 2
+			else
+				scullFrame = 1
+			end
+			scullTime = 0
+		end
+		boomTime = boomTime + dt
+		if boomTime > 0.1 then
+			if boomFrame < 6 then
+				boomFrame = boomFrame + 1
+				boomTime = 0
 			end
 		end
 	end
@@ -44,41 +86,63 @@ end
 
 -- Малюємо комірки
 function love.draw()
-	for i=1,sizex do
-		for j=1,sizey do
-			if _pic[i][j] == HIDDEN then
-				love.graphics.setColor(80, 100, 255)
-				love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
-			elseif _pic[i][j] == BOMB then
-				love.graphics.setColor(255, 255, 255)
-				love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
-				love.graphics.draw(boomImg, (i-1)*grid+2, (j-1)*grid+2, 0, grid/100)
-			elseif _pic[i][j] == DEFUSED then
-				love.graphics.setColor(255, 255, 255)
-				love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
-				love.graphics.draw(mineImg, (i-1)*grid+2, (j-1)*grid+2, 0, grid/100)
-			elseif _pic[i][j] == EMPTY then
-				love.graphics.setColor(255, 255, 255)
-				love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
-			elseif _pic[i][j] == FLAG then
-				love.graphics.setColor(80, 100, 255)
-				love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
-				love.graphics.setColor(255,255,255)
-				love.graphics.draw(flagImg, (i-1)*grid+2, (j-1)*grid+2, 0, grid/100)
-			else 
-				love.graphics.setColor(255, 255, 255)
-				love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
-				love.graphics.setColor(0,0,0)
-				love.graphics.print(tostring(_pic[i][j]), (i-1)*grid+7, (j-1)*grid+2)
+	-- якщо "Кінець гри" - виводимо "Череп"
+	if gameOver and boomFrame > 5 then
+		if scullFrame == 1 then
+			love.graphics.setColor(250,250,0)
+		else
+			love.graphics.setColor(250,0,0)
+		end
+		love.graphics.rectangle("fill", 0, 0, grid*sizex+2, grid*sizey+2)
+		love.graphics.setColor(0,0,0)
+		love.graphics.printf("GAME", 0, 0.05*grid*sizey, sizex*grid, 'center')
+		love.graphics.printf("OVER", 0, 0.85*grid*sizey, sizex*grid, 'center')
+		love.graphics.setColor(255,255,255)
+		love.graphics.draw(scullImg[scullFrame], grid*sizex*(0.125), grid*sizey*(0.125), 0, grid*sizey/480)
+	-- якщо гравець відкрив усі комірки правильно
+	elseif win then
+		if winFrame == 1 then
+			love.graphics.setColor(0,180,180)
+		else
+			love.graphics.setColor(180,0,60)
+		end
+		love.graphics.rectangle("fill", 0, 0, grid*sizex+2, grid*sizey+2)
+		love.graphics.setColor(0,0,0)
+		love.graphics.printf("YOU", 0, 0.05*grid*sizey, sizex*grid, 'center')
+		love.graphics.printf("WIN", 0, 0.85*grid*sizey, sizex*grid, 'center')
+		love.graphics.setColor(255,255,255)
+		love.graphics.draw(winImg, grid*sizex*(0.125), grid*sizey*(0.125), 0, grid*sizey/480)
+	-- малюємо комірки
+	else
+		for i=1,sizex do
+			for j=1,sizey do
+				if _pic[i][j] == HIDDEN then
+					love.graphics.setColor(80, 100, 255)
+					love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
+				elseif _pic[i][j] == BOMB then
+					love.graphics.setColor(255, 255, 255)
+					love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
+					love.graphics.draw(boomImg[boomFrame], (i-1)*grid+2, (j-1)*grid+2, 0, grid/100)
+				elseif _pic[i][j] == DEFUSED then
+					love.graphics.setColor(255, 255, 255)
+					love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
+					love.graphics.draw(mineImg, (i-1)*grid+2, (j-1)*grid+2, 0, grid/100)
+				elseif _pic[i][j] == EMPTY then
+					love.graphics.setColor(255, 255, 255)
+					love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
+				elseif _pic[i][j] == FLAG then
+					love.graphics.setColor(80, 100, 255)
+					love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
+					love.graphics.setColor(255,255,255)
+					love.graphics.draw(flagImg, (i-1)*grid+2, (j-1)*grid+2, 0, grid/100)
+				else 
+					love.graphics.setColor(255, 255, 255)
+					love.graphics.rectangle("fill", (i-1)*grid+2, (j-1)*grid+2, grid-2, grid-2)
+					love.graphics.setColor(0,0,0)
+					love.graphics.print(tostring(_pic[i][j]), (i-1)*grid+7, (j-1)*grid+2)
+				end
 			end
 		end
-	end
-	-- якщо "Кінець гри" - виводимо запрошення зіграти ще раз
-	if gameOver then
-		love.graphics.setColor(0,0,0,180)
-		love.graphics.rectangle("fill", 0, (sizey-2.5)/2*grid, sizex*grid, 2.5*grid)
-		love.graphics.setColor(255,255,255)
-		love.graphics.printf("RETRY", 0, (sizey-1)/2*grid, sizex*grid, 'center')
 	end
 end
 
@@ -88,9 +152,10 @@ function love.mousepressed(x, y, button, istouch)
 	-- ліва кнопка миші
 	if button == 1 then
 		-- якщо "Кінець гри" - будуємо поле заново
-		if gameOver then
+		if gameOver or win then
 			init()
 			gameOver = false
+			win = false
 		-- інакше перевіряємо натиснення на відповідну комірку
 		else
 			for i=1,sizex do
@@ -125,11 +190,13 @@ function love.mousepressed(x, y, button, istouch)
 				if x > (i-1)*grid and x < i*grid
 					and y > (j-1)*grid and  y < j*grid then
 					-- ставимо/ знімаємо прапорець
-					if _pic[i][j] == HIDDEN then
+					if _pic[i][j] == HIDDEN and flags_qty <= mines_qty then
 						_pic[i][j] = FLAG
+						flags_qty = flags_qty + 1
 						if _table[i][j] == BOMB then _table[i][j] = DEFUSED end
 					elseif _pic[i][j] == FLAG then
 						_pic[i][j] = HIDDEN
+						flags_qty = flags_qty - 1
 						if _table[i][j] == DEFUSED then _table[i][j] = BOMB end
 					end
 				end
@@ -160,16 +227,6 @@ end
 function init()
 	-- заповнюємо мінами
 	math.randomseed(love.timer.getTime())
-	-- for i=1,sizex do
-	-- 	for j=1,sizey do
-	-- 		if math.random() > 0.8 then 
-	-- 			_table[i][j] = BOMB
-	-- 		else 
-	-- 			_table[i][j] = EMPTY
-	-- 		end
-	-- 		_pic[i][j] = HIDDEN
-	-- 	end
-	-- end
 	for i=1,sizex do
 		for j=1,sizey do
 			_table[i][j] = EMPTY
@@ -202,4 +259,12 @@ function init()
 			end
 		end
 	end
+	flags_qty = 1
+	-- Ініціалізуємо змінні для анімації
+	boomFrame = 1
+	boomTime = 0
+	scullFrame = 1
+	scullTime = 0
+	winFrame = 1
+	winTime = 0
 end
