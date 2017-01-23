@@ -5,16 +5,6 @@ require('globals')
 
 -- Ініціалізація змінних при завантаженні
 function love.load()
-	-- таблиця зі значеннями комірок
-	_table = {}
-	-- таблиця з ігровим полем
-	_pic = {}
-	for i=1,sizex do
-		_table[i] = {}
-		_pic[i] = {}
-	end
-	-- обрахуємо кількість мін
-	mines_qty = math.floor(0.15*sizex*sizey)
 	-- заповнюємо комірки
 	init()
 	-- завантажуємо шрифт
@@ -31,6 +21,7 @@ function love.load()
 	scullImg[1] = love.graphics.newImage('img/scull/scull-1.png')
 	scullImg[2] = love.graphics.newImage('img/scull/scull-2.png')
 	winImg = love.graphics.newImage('img/win.png')
+	fieldImg = love.graphics.newImage('img/menu/field.png')
 	-- Завантажуємо звуки
 	sonarSound = love.audio.newSource('sounds/sonar.wav')
 	sonarOffSound = love.audio.newSource('sounds/sonar-off.wav')
@@ -98,7 +89,19 @@ end
 -- Малюємо комірки
 function love.draw()
 	-- якщо "Кінець гри" - виводимо "Череп"
-	if gameOver and boomFrame > 5 then
+	if menu then
+		love.graphics.setColor(255,255,255)
+		love.graphics.rectangle("fill", 0, 0, grid*sizex+2, grid*sizey+2)
+		love.graphics.setColor(0,0,0)
+		love.graphics.printf("PAUSE", 0, 0.05*grid*sizey, sizex*grid, 'center')
+		love.graphics.printf("OK", 0, 0.85*grid*sizey, sizex*grid, 'center')
+		love.graphics.setColor(255,255,255)
+		love.graphics.draw(fieldImg, 0.5*sizex*grid-75, 0.2*grid*sizey)
+		love.graphics.draw(fieldImg, 0.5*sizex*grid-75, 0.2*grid*sizey+60)
+		love.graphics.setColor(0,0,0)
+		love.graphics.printf(tostring(sizex+x_inc_qty), 0, 0.2*grid*sizey+10, sizex*grid, 'center')
+		love.graphics.printf(tostring(sizey+y_inc_qty), 0, 0.2*grid*sizey+70, sizex*grid, 'center')
+	elseif gameOver and boomFrame > 5 then
 		if scullFrame == 1 then
 			love.graphics.setColor(250,250,0)
 		else
@@ -109,7 +112,9 @@ function love.draw()
 		love.graphics.printf("GAME", 0, 0.05*grid*sizey, sizex*grid, 'center')
 		love.graphics.printf("OVER", 0, 0.85*grid*sizey, sizex*grid, 'center')
 		love.graphics.setColor(255,255,255)
-		love.graphics.draw(scullImg[scullFrame], grid*sizex*(0.125), grid*sizey*(0.125), 0, grid*sizey/480)
+		local dim = math.min(sizex,sizey)
+		love.graphics.draw(scullImg[scullFrame], grid*sizex/2, grid*sizey/2, 0, 
+			grid*dim/480, grid*dim/480, 180, 180)
 	-- якщо гравець відкрив усі комірки правильно
 	elseif win then
 		if winFrame == 1 then
@@ -122,7 +127,9 @@ function love.draw()
 		love.graphics.printf("YOU", 0, 0.05*grid*sizey, sizex*grid, 'center')
 		love.graphics.printf("WIN", 0, 0.85*grid*sizey, sizex*grid, 'center')
 		love.graphics.setColor(255,255,255)
-		love.graphics.draw(winImg, grid*sizex*(0.125), grid*sizey*(0.125), 0, grid*sizey/480)
+		local dim = math.min(sizex,sizey)
+		love.graphics.draw(winImg,grid*sizex/2, grid*sizey/2, 0, 
+			grid*dim/480, grid*dim/480, 180, 180)
 	-- малюємо комірки
 	else
 		for i=1,sizex do
@@ -162,8 +169,42 @@ end
 function love.mousepressed(x, y, button, istouch)
 	-- ліва кнопка миші
 	if button == 1 then
+		-- пауза/налаштування
+		if menu then
+			-- стрілка вліво, значення х
+			if x > 0.5*sizex*grid-75 and y > 0.2*grid*sizey and 
+				x < 0.5*sizex*grid-45 and y < 0.2*grid*sizey+50 then
+				if x_inc_qty+sizex > 5 then
+					x_inc_qty = x_inc_qty - 1
+				end
+			-- стрілка вправо, значення х
+			elseif x > 0.5*sizex*grid+45 and y > 0.2*grid*sizey and 
+				x < 0.5*sizex*grid+75 and y < 0.2*grid*sizey+50 then
+				if x_inc_qty+sizex < 62 then
+					x_inc_qty = x_inc_qty + 1
+				end
+			-- стрілка вліво, значення у
+			elseif x > 0.5*sizex*grid-75 and y > 0.2*grid*sizey+60 and 
+				x < 0.5*sizex*grid-45 and y < 0.2*grid*sizey+110 then
+				if y_inc_qty+sizey > 5  then
+					y_inc_qty = y_inc_qty - 1
+				end
+			-- стрілка вправо, значення у
+			elseif x > 0.5*sizex*grid+45 and y > 0.2*grid*sizey+60 and 
+				x < 0.5*sizex*grid+75 and y < 0.2*grid*sizey+110 then
+				if y_inc_qty+sizey < 32  then
+					y_inc_qty = y_inc_qty + 1
+				end
+			-- кнопка "ОК"
+			elseif y > 0.85*grid*sizey and y < 0.85*grid*sizey+100 then
+				sizex = sizex + x_inc_qty
+				sizey = sizey + y_inc_qty
+				init()
+				menu = false
+				love.window.setMode(sizex*grid+2, sizey*grid+2, {resizable=false})
+			end
 		-- якщо "Кінець гри" - будуємо поле заново
-		if gameOver or win then
+		elseif gameOver or win then
 			init()
 			gameOver = false
 			win = false
@@ -223,6 +264,13 @@ function love.mousepressed(x, y, button, istouch)
 	end
 end
 
+function love.keypressed(key)
+	if key == "escape" then
+		menu = not menu
+		x_inc_qty = 0
+		y_inc_qty = 0
+	end
+end
 
 -- Рекурсивне відкриття порожних та сусідних комірок
 function fill(i,j)
@@ -246,6 +294,16 @@ end
 
 -- Рандомно заповнюємо комірки мінами
 function init()
+	-- таблиця зі значеннями комірок
+	_table = {}
+	-- таблиця з ігровим полем
+	_pic = {}
+	for i=1,sizex do
+		_table[i] = {}
+		_pic[i] = {}
+	end
+	-- обрахуємо кількість мін
+	mines_qty = math.floor(0.15*sizex*sizey)
 	-- заповнюємо мінами
 	math.randomseed(love.timer.getTime())
 	for i=1,sizex do
@@ -280,6 +338,10 @@ function init()
 			end
 		end
 	end
+	--
+	gameOver = false
+	win = false
+	menu = false
 	flags_qty = 1
 	-- Ініціалізуємо змінні для анімації
 	boomFrame = 1
