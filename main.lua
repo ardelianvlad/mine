@@ -18,8 +18,9 @@ function love.load()
 		boomImg[i] = love.graphics.newImage('img/boom/boom-'.. tostring(i) ..'.png')
 	end
 	scullImg = {}
-	scullImg[1] = love.graphics.newImage('img/scull/scull-1.png')
-	scullImg[2] = love.graphics.newImage('img/scull/scull-2.png')
+	for i=1,6 do
+		scullImg[i] = love.graphics.newImage('img/scull2/scull-'.. tostring(i) ..'.png')
+	end
 	winImg = love.graphics.newImage('img/win.png')
 	fieldImg = love.graphics.newImage('img/menu/field.png')
 	-- Завантажуємо звуки
@@ -28,6 +29,9 @@ function love.load()
 	explosionSound = love.audio.newSource('sounds/explosion.wav')
 	winSound = love.audio.newSource('sounds/win.wav')
 	openSound = love.audio.newSource('sounds/open.wav')
+	-- анімація черепа
+	require('timing')
+
 end
 
 
@@ -66,15 +70,14 @@ function love.update(dt)
 		end
 	end
 	if gameOver then
+		love.audio.play(explosionSound)
 		scullTime = scullTime + dt
-		if scullTime > 0.3 then
-			if scullFrame == 1 then
-				scullFrame = 2
-			else
-				scullFrame = 1
-			end
+		if scullTime > 5.4 then
 			scullTime = 0
+			love.audio.stop(explosionSound)
+			love.audio.play(explosionSound)
 		end
+		scullFrame = getScullFrame(scullTime)
 		boomTime = boomTime + dt
 		if boomTime > 0.1 then
 			if boomFrame < 6 then
@@ -102,10 +105,10 @@ function love.draw()
 		love.graphics.printf(tostring(sizex+x_inc_qty), 0, 0.2*grid*sizey+10, sizex*grid, 'center')
 		love.graphics.printf(tostring(sizey+y_inc_qty), 0, 0.2*grid*sizey+70, sizex*grid, 'center')
 	elseif gameOver and boomFrame > 5 then
-		if scullFrame == 1 then
+		if scullTime < 2.93 then
 			love.graphics.setColor(250,250,0)
 		else
-			love.graphics.setColor(250,0,0)
+		 	love.graphics.setColor(250,0,0)
 		end
 		love.graphics.rectangle("fill", 0, 0, grid*sizex+2, grid*sizey+2)
 		love.graphics.setColor(0,0,0)
@@ -226,7 +229,7 @@ function love.mousepressed(x, y, button, istouch)
 								end
 							end
 							gameOver = true
-							love.audio.play(explosionSound)
+							-- love.audio.play(explosionSound)
 						end
 						-- якщо в комірці пусто - відкриваємо сусідні комірки
 						if _pic[i][j] == EMPTY then
