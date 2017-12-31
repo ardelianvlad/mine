@@ -211,6 +211,9 @@ function love.mousepressed(x, y, button, istouch)
 			init()
 			gameOver = false
 			win = false
+			-- вимикаємо звуки
+			love.audio.stop(winSound)
+			love.audio.stop(explosionSound)
 		-- інакше перевіряємо натиснення на відповідну комірку
 		else
 			for i=1,sizex do
